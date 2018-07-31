@@ -1,0 +1,55 @@
+# /bin/bash
+# mk.sh
+
+QEMU=/root/buildQemu/arm-softmmu/qemu-system-arm
+
+QEMU=/root/osd/qemu-master/aarch64-softmmu/qemu-system-aarch64
+
+
+CROSS_COMPILE=arm-none-eabi-
+CROSS_COMPILE=arm-histbv310-linux-
+
+# this toolchina does support -mcpu=arm926ej-s, but need more flags
+# CROSS_COMPILE=arm-linux-gnueabihf-
+
+MACHINE=versatileab
+
+ifeq ($(MACHINE), versatileab)
+	CFLAGS:= -mcpu=arm926ej-s 
+else
+endif
+
+
+all:hello.bin
+
+startup.o:startup.s
+	$(CROSS_COMPILE)as $(CFLAGS)	$< -o $@
+
+hello.o:hello.c
+	$(CROSS_COMPILE)gcc $(CFLAGS) -c $< -o $@
+
+
+hello.elf:startup.o hello.o
+	$(CROSS_COMPILE)ld -T linker.ld $^ -o $@
+
+hello.bin:hello.elf
+	$(CROSS_COMPILE)objcopy -O binary $< $@ 
+	
+		
+clean:
+		rm -rf *.o hello.bin hello.elf
+
+test:
+		$(QEMU)	-machine versatilepb -m 128M -nographic -kernel hello.elf
+		
+debug:
+		$(QEMU)	-machine versatilepb -m 128M -nographic -s -S -kernel hello.bin
+
+
+# arm-none-eabi-gdb : start GDB
+# target remote localhost:1234  : connect to remote from localhost:1234
+# file hello.elf : load local symbal for hello.bin
+# continue: execute remote program
+# exit/quit : quit GDB and remote program
+
+		
